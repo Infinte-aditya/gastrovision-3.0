@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:15
+    container_name: video_db_instance
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: videodb
+    ports:
+      - "5432:5432"
+    volumes:
+      # This maps your local SQL file to the Docker 'auto-run' folder
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # This saves your data even if you delete the container
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
