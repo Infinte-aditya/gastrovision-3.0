@@ -43,17 +43,7 @@ python gastrovision_main.py
 ## Project Structure
 
 ```
-GastroVision v2.0/
-├── gastrovision_main.py    # Main application entry point
-├── styles.py              # UI styling and themes
-├── screens/               # UI screen modules
-│   ├── login.py          # Login screen
-│   ├── dashboard.py      # Dashboard screen
-│   ├── analysis.py       # Video analysis screen
-│   └── results.py        # Results screen
-├── test_screens.py       # Screen testing utility
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
+
 ```
 
 ## Technical Details
