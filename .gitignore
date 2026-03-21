@@ -1,1 +1,5 @@
+# Ignore videos
+*.mp4
+
+# Ignore output folder
 backend/video_processing/output_videos/
