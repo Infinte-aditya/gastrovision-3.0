@@ -1,0 +1,44 @@
+{
+  "_name_or_path": "mmuratarat/kvasir-v2-classifier",
+  "architectures": [
+    "ViTForImageClassification"
+  ],
+  "attention_probs_dropout_prob": 0.0,
+  "encoder_stride": 16,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.0,
+  "hidden_size": 768,
+  "id2label": {
+    "0": "dyed-lifted-polyps",
+    "1": "dyed-resection-margins",
+    "2": "esophagitis",
+    "3": "normal-cecum",
+    "4": "normal-pylorus",
+    "5": "normal-z-line",
+    "6": "polyps",
+    "7": "ulcerative-colitis"
+  },
+  "image_size": 224,
+  "initializer_range": 0.02,
+  "intermediate_size": 3072,
+  "label2id": {
+    "dyed-lifted-polyps": "0",
+    "dyed-resection-margins": "1",
+    "esophagitis": "2",
+    "normal-cecum": "3",
+    "normal-pylorus": "4",
+    "normal-z-line": "5",
+    "polyps": "6",
+    "ulcerative-colitis": "7"
+  },
+  "layer_norm_eps": 1e-12,
+  "model_type": "vit",
+  "num_attention_heads": 12,
+  "num_channels": 3,
+  "num_hidden_layers": 12,
+  "patch_size": 16,
+  "problem_type": "single_label_classification",
+  "qkv_bias": true,
+  "torch_dtype": "float32",
+  "transformers_version": "4.48.3"
+}

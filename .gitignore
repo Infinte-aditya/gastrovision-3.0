@@ -7,3 +7,6 @@ frontend/screens/__pycache__/
 output_videos/
 
 .venv
+
+test_backend/__pycache__*/
+test_backend/vit_kvasir.onnx
