@@ -4,7 +4,7 @@ frontend/__pycache__/
 frontend/screens/__pycache__/
 
 # Ignore output folder
-output_videos/
+outputs/
 
 .venv
 
