@@ -38,7 +38,7 @@ def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=10, max_
 
     created_files = [f for f in os.listdir(full_path) if f.endswith(".png")]
 
-    with open(f"{full_path}/frame_manifest.jsonl", "a") as file:
+    with open(f"{backend_dir}/outputs/{video_name}/frame_manifest.jsonl", "a") as file:
         for i in range(1, len(created_files)+1):
 
             frame_filename = f"{input_file[:6]}_frame{i:06d}.png"
@@ -73,7 +73,7 @@ def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=10, max_
         elif mode == "every_n_frames":
             nof = int(probe['streams'][0]['nb_frames'])/n
         elif mode == "every_n_seconds":
-            nof = int(probe['format']['duration'])/n
+            nof = float(probe['format']['duration'])/n
       
         entry = {
 
@@ -89,5 +89,5 @@ def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=10, max_
         file.write(json.dumps(entry))
 
 if __name__ == "__main__":
-    extract_frames("cosmos.mp4",'output_videos', mode="every_n_frames")
+    extract_frames("cosmos.mp4",'output_videos', mode="every_n_seconds")
     # find_metadata("sample.mp4")
