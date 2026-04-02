@@ -4,16 +4,19 @@ from math import floor
 import json
 from datetime import datetime as dt
 import datetime
+import shutil
 
-def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=2, max_frames=10000):
+
+def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=10, max_frames=10000):
 
     video_name = os.path.splitext(os.path.basename(input_file))[0]
 
     backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     full_path = os.path.join(backend_dir,"outputs", video_name, "frames")
 
-    if not os.path.exists(full_path):
-        os.makedirs(full_path)
+    if os.path.exists(full_path):
+        shutil.rmtree(full_path)
+    os.makedirs(full_path)
 
 
     stream = ffmpeg.input(input_file)
@@ -49,26 +52,42 @@ def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=2, max_f
 
             file.write(json.dumps(entry) + "\n")
 
-    with open(f"{backend_dir}/outputs/{video_name}/video_metadata.jsonl", "a") as file:
+    with open(f"{backend_dir}/outputs/{video_name}/video_metadata.json", "w") as file:
 
         probe = ffmpeg.probe(input_file)
 
         duration_secs = float(probe['streams'][0].get('duration', probe['format']['duration']))
         duration_hhmmss = str(datetime.timedelta(seconds=int(duration_secs)))
+
+        frame_rate = probe['streams'][0]['avg_frame_rate']
+        if '/' in frame_rate:
+            num, den = frame_rate.split('/')
+            actual_fps = float(num)/float(den)
+        else:
+            actual_fps = float(frame_rate)
+
+        if mode == "all":
+            nof = probe['streams'][0]['nb_frames']
+        elif mode == "fixed_fps":
+            nof = int(probe['streams'][0]['nb_frames'])/(actual_fps/target_fps)
+        elif mode == "every_n_frames":
+            nof = int(probe['streams'][0]['nb_frames'])/n
+        elif mode == "every_n_seconds":
+            nof = int(probe['format']['duration'])/n
       
         entry = {
 
             "resolution: ": f"{probe['streams'][0]['width']} x {probe['streams'][0]['height']}",
-            "frame rate": probe['streams'][0]['avg_frame_rate'],
+            "frame rate": actual_fps,
             "codec name": probe['streams'][0]['codec_name'],
             "bit rate": probe['streams'][0]['bit_rate'],
             "duration_formatted": duration_hhmmss,
             "duration: ": probe['format']['duration'],
-            "number of frames: ": probe['streams'][0]['nb_frames']
+            "number of frames: ": nof
         }
 
         file.write(json.dumps(entry))
 
 if __name__ == "__main__":
-    extract_frames("cosmos.mp4",'output_videos', mode="every_n_seconds")
+    extract_frames("cosmos.mp4",'output_videos', mode="every_n_frames")
     # find_metadata("sample.mp4")
