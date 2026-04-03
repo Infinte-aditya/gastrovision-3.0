@@ -89,5 +89,5 @@ def extract_frames(input_file, output_dir, mode="all", n=10, target_fps=10, max_
         file.write(json.dumps(entry))
 
 if __name__ == "__main__":
-    extract_frames("cosmos.mp4",'output_videos', mode="every_n_seconds")
+    extract_frames("cosmos.mp4",'output_videos', mode="every_n_frames")
     # find_metadata("sample.mp4")

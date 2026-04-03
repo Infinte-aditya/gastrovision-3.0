@@ -64,6 +64,10 @@ def remove_duplicates(frames: List[np.ndarray],video,dup_threshold):
 def select_frames(frames: List[str], video_name, blur_threshold, dup_threshold):
     max_frames = 1000
     video_dir = os.path.join("..","outputs",output_video)
+    cleaned_frames = os.path.join(video_dir,"cleaned_frames")
+
+    if not os.path.exists(cleaned_frames):
+        os.makedirs(cleaned_frames)
 
 
 
@@ -81,6 +85,9 @@ def select_frames(frames: List[str], video_name, blur_threshold, dup_threshold):
     for file_name,img,score in frame_score_dup:
         qual_arr.append([file_name,score])
         final_frames_arr.append(file_name)
+
+        cleaned_frames_path = os.path.join(cleaned_frames,file_name)
+        cv2.imwrite(cleaned_frames_path,img)
 
 
     with open(metadata_path,"w") as file:
