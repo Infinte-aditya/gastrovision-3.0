@@ -9,4 +9,30 @@ outputs/
 .venv
 
 test_backend/__pycache__*/
-test_backend/vit_kvasir.onnx
+*.onnx
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Machine Learning models
+*.onnx
+*.pth
+*.pt
+*.bin
+*.h5
+
+# Python environment & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
