@@ -121,5 +121,5 @@ class frame_selector:
 
         
 
-        return final_frames,cleaned_frames
+        return final_frames_arr, final_frames, cleaned_frames
         

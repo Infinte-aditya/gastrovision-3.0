@@ -9,6 +9,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QPixmap, QColor, QPalette, QFontDatabase
 
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PyQt6.QtMultimediaWidgets import QVideoWidget
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer
+
 # ─────────────────────────────────────────────
 #  STYLESHEET
 # ─────────────────────────────────────────────
@@ -241,6 +246,8 @@ QLabel#ClassChipActive {
 class AnalysisWorker(QThread):
     finished = pyqtSignal(dict)
     error    = pyqtSignal(str)
+    frame_ready = pyqtSignal(str)   # ← ADD THIS — emits path to each heatmap PNG
+
 
     def __init__(self, image_path):
         super().__init__()
@@ -298,6 +305,11 @@ class MainWindow(QMainWindow):
 
         self.selected_image_path = None
         self.worker = None
+
+        self._preview_timer = QTimer()
+        self._preview_timer.timeout.connect(self._next_preview_frame)
+        self._preview_frames = []   # list of image paths to cycle
+        self._preview_idx = 0
 
         root = QWidget()
         root.setObjectName("Root")
@@ -574,6 +586,29 @@ class MainWindow(QMainWindow):
             self.image_box.style().unpolish(self.image_box)
             self.image_box.style().polish(self.image_box)
 
+    def _next_preview_frame(self):
+        if not self._preview_frames:
+            # No frames yet — pulse the placeholder text
+            dots = getattr(self, '_dot_count', 0)
+            self._dot_count = (dots + 1) % 4
+            self.placeholder_label.setText("PROCESSING" + "." * self._dot_count)
+            self.placeholder_label.show()
+            return
+
+        path = self._preview_frames[self._preview_idx % len(self._preview_frames)]
+        self._preview_idx += 1
+        px = QPixmap(path)
+        if not px.isNull():
+            px = px.scaled(
+                self.image_box.width() - 20,
+                self.image_box.height() - 20,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.image_preview.setPixmap(px)
+            self.image_preview.show()
+            self.placeholder_label.hide()
+
     def _update_props(self, path):
         from PIL import Image as PILImage
         fname = os.path.basename(path)
@@ -633,13 +668,24 @@ class MainWindow(QMainWindow):
         self._reset_results()
         self.awaiting_label.setText("PROCESSING...")
 
+        self._preview_frames = []
+        self._preview_idx = 0
+        self._preview_timer.start(120)   # ~8fps cycling
+
         self.worker = AnalysisWorker(self.selected_image_path)
         self.worker.finished.connect(self._on_success)
         self.worker.error.connect(self._on_error)
         self.worker.start()
 
     def _on_success(self, result):
-        self._unlock_ui()
+        self._preview_timer.stop()
+
+        heatmap_paths = result.get("heatmap_paths", [])   # your backend must return these
+        if heatmap_paths:
+            self._preview_frames = heatmap_paths
+            self._preview_idx = 0
+            self._preview_timer.start(1500)   # slow cycle — 1.5s per heatmap frame
+            self._unlock_ui()
         prediction = result.get("label", "unknown")
         confidence = result.get("confidence", 0.0)
 

@@ -10,6 +10,7 @@ outputs/
 
 test_backend/__pycache__*/
 *.onnx
+*.onnx.data
 
 # Video files
 *.mp4

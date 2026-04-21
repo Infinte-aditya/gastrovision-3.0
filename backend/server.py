@@ -28,12 +28,14 @@ async def predict_video(file: UploadFile= File(...)):
 
 
     try:
-        top_label, top_conf = prediction(file_path)
+        top_label, top_conf, heatmap_results  = prediction(file_path)
 
         return {
             "file": file.filename,
             "label": top_label,
-            "confidence": top_conf
+            "confidence": top_conf,
+            "heatmap_paths": [r["save_path"] for r in heatmap_results]
+
         }
     finally:
         if os.path.exists(file_path):
