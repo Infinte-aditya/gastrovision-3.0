@@ -132,12 +132,18 @@ QLabel#PropKey {
     color: #4b53bc;
     font-family: "Courier New";
     font-size: 10px;
+    font-weight: bold;
     letter-spacing: 1px;
 }
 QLabel#PropVal {
-    color: #8891a8;
+    color: #1a1d2e;
     font-family: "Courier New";
-    font-size: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    background-color: #e0e7ff;
+    padding: 4px 8px;
+    border-radius: 3px;
+    
 }
 
 /* ── Buttons ── */
