@@ -232,7 +232,7 @@ class HeatmapGenerator:
             "google/vit-base-patch16-224-in21k",
             config=config,
             ignore_mismatched_sizes=True,
-            force_download=True,   # ← ADD THIS
+            # force_download=True,   # ← ADD THIS
 
         )
 

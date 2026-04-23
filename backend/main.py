@@ -6,13 +6,16 @@ from scoring.video_scoring import video_scoring
 from video_processing.frame_extractor import frame_extractor
 from video_processing.frame_selector import frame_selector
 from visualization.heatmap import HeatmapGenerator
+from threading import Thread
+
+
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "vit_model_fp32.onnx")
 GLOBAL_PREDICTOR = predictor(MODEL_PATH)
 GLOBAL_FRAME_SCORER = frame_scoring()
 GLOBAL_VIDEO_SCORER = video_scoring()
 GLOBAL_HEATMAP_GEN = HeatmapGenerator(
-    pth_path=os.path.join(os.path.dirname(__file__), "model", "vit_model_fp32.pth")
+    pth_path=os.path.join(os.path.dirname(__file__), "model", "vit_best.pth")
 )
 
 
@@ -82,12 +85,27 @@ def prediction(video_full_path):
     # )
 
     heatmap_dir = os.path.join(os.path.dirname(__file__), "outputs", video_name, "heatmaps")
-    heatmap_results = GLOBAL_HEATMAP_GEN.generate_batch(
-        frame_dir=cleaned_frames,
-        frame_results=ranked,
-        output_dir=heatmap_dir,
-        top_n=5
-    )
+    # heatmap_results = GLOBAL_HEATMAP_GEN.generate_batch(
+    #     frame_dir=cleaned_frames,
+    #     frame_results=ranked,
+    #     output_dir=heatmap_dir,
+    #     top_n=5
+    # )
+
+    heatmap_results = []
+
+    def run_heatmap():
+        results = GLOBAL_HEATMAP_GEN.generate_batch(
+            frame_dir=cleaned_frames,
+            frame_results=ranked,
+            output_dir=heatmap_dir,
+            top_n=5
+        )
+        heatmap_results.extend(results)
+
+    heatmap_thread = Thread(target=run_heatmap, daemon=True)
+    heatmap_thread.start()
 
 
-    return top_label, top_conf, heatmap_results  
+
+    return top_label, top_conf #, heatmap_results  

@@ -170,22 +170,22 @@ class predictor:
 
         batch_tensor = self.preprocess(frame_input)
 
-        batch_numpy = batch_tensor.numpy().astype(np.float32)
-
         input_name = self.session.get_inputs()[0].name
 
         start_time = time.time()
 
-        outputs = self.session.run(
-            None,
-            {input_name: batch_numpy}
-        )
+        BATCH_SIZE = 32
+        all_logits = []
+        for i in range(0, len(batch_tensor), BATCH_SIZE):
+            chunk = batch_tensor[i:i+BATCH_SIZE].numpy().astype(np.float32)
+            out = self.session.run(None, {input_name: chunk})
+            all_logits.append(out[0])
+
+        logits = np.concatenate(all_logits, axis=0)
 
         end_time = time.time()
 
         inference_time = (end_time - start_time)*1000
-
-        logits = outputs[0]
 
         exp_vals = np.exp(logits - np.max(logits,axis=1,keepdims=True))
         exp_vals = exp_vals/np.sum(exp_vals,axis=1,keepdims=True)

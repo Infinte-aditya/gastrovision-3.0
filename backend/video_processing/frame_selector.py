@@ -5,6 +5,8 @@ from typing import List, Union, Literal
 import os
 import imagehash
 import json
+from concurrent.futures import ThreadPoolExecutor
+
 
 
 class frame_selector:
@@ -30,19 +32,38 @@ class frame_selector:
         frame_score = []
         count = 0
 
-        for frame in frames:
-            full_path = os.path.join(video_path,frame)
+        # for frame in frames:
+        #     full_path = os.path.join(video_path,frame)
+        #     img = cv2.imread(full_path)
+        #     if img is None:
+        #         print(f"Skipping frame {frame} : could not read the file")
+        #         continue
+        #     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #     variance = int(cv2.Laplacian(gray, cv2.CV_64F).var())
+        #     if variance > blur_threshold:
+        #         frame_var.append(variance)
+        #         frame_arr.append(img)
+        #         frame_score.append([frame,img,variance])
+        #         count += 1
+
+        def process_frame(frame):
+            full_path = os.path.join(video_path, frame)
             img = cv2.imread(full_path)
             if img is None:
-                print(f"Skipping frame {frame} : could not read the file")
-                continue
+                return None
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             variance = int(cv2.Laplacian(gray, cv2.CV_64F).var())
             if variance > blur_threshold:
-                frame_var.append(variance)
-                frame_arr.append(img)
-                frame_score.append([frame,img,variance])
-                count += 1
+                return (frame, img, variance)
+            return None
+        
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = list(executor.map(process_frame, frames))
+
+        frame_score = [r for r in results if r is not None]
+        frame_arr = [r[1] for r in frame_score]
+        frame_var = [r[2] for r in frame_score]
+        count = len(frame_score)
 
         return frame_arr,frame_var, blur_threshold, count, frame_score
             

@@ -40,19 +40,31 @@ class frame_extractor:
 
         created_files = [f for f in os.listdir(full_path) if f.endswith(".png")]
 
+        # with open(f"{backend_dir}/outputs/{video_name}/frame_manifest.jsonl", "a") as file:
+        #     for i in range(1, len(created_files)+1):
+
+        #         frame_filename = f"{video_name}_frame_{i:06d}.png"
+
+        #         entry = {
+        #             frame_filename: {
+        #                 "timestamp" : dt.now().strftime("%H:%M:%S.%f"),
+        #                 "confidence": 1
+        #             }
+        #         }
+
+        #         file.write(json.dumps(entry) + "\n")
+
+        # Replace the with open manifest loop:
+        created_files = [f for f in os.listdir(full_path) if f.endswith(".png")]
+        created_files.sort()
+
+        timestamp = dt.now().strftime("%H:%M:%S.%f")
+        entries = [
+            json.dumps({f"{video_name}_frame_{i+1:06d}.png": {"timestamp": timestamp, "confidence": 1}})
+            for i in range(len(created_files))
+        ]
         with open(f"{backend_dir}/outputs/{video_name}/frame_manifest.jsonl", "a") as file:
-            for i in range(1, len(created_files)+1):
-
-                frame_filename = f"{video_name}_frame_{i:06d}.png"
-
-                entry = {
-                    frame_filename: {
-                        "timestamp" : dt.now().strftime("%H:%M:%S.%f"),
-                        "confidence": 1
-                    }
-                }
-
-                file.write(json.dumps(entry) + "\n")
+            file.write("\n".join(entries) + "\n")
 
         with open(f"{backend_dir}/outputs/{video_name}/video_metadata.json", "w") as file:
 

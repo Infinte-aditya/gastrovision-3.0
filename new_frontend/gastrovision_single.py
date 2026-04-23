@@ -259,6 +259,7 @@ class AnalysisWorker(QThread):
         super().__init__()
         self.image_path = image_path
 
+
     def run(self):
         try:
             url = "http://127.0.0.1:8000/predict"
@@ -275,6 +276,8 @@ class AnalysisWorker(QThread):
             self.error.emit("Cannot connect to server.\nMake sure predict_server.py is running on port 8000.")
         except Exception as e:
             self.error.emit(str(e))
+
+        
 
 
 # ─────────────────────────────────────────────
@@ -316,6 +319,14 @@ class MainWindow(QMainWindow):
         self._preview_timer.timeout.connect(self._next_preview_frame)
         self._preview_frames = []   # list of image paths to cycle
         self._preview_idx = 0
+
+        self._frame_counter = 0
+        self._frame_timer = QTimer()
+        self._frame_timer.timeout.connect(self._update_frame_display)
+
+        self._scan_timer = QTimer()
+        self._scan_timer.timeout.connect(self._scan_for_frames)
+        self._scan_path = ""
 
         root = QWidget()
         root.setObjectName("Root")
@@ -592,6 +603,18 @@ class MainWindow(QMainWindow):
             self.image_box.style().unpolish(self.image_box)
             self.image_box.style().polish(self.image_box)
 
+    
+    def _scan_for_frames(self):
+        if not self._scan_path or not os.path.exists(self._scan_path):
+            return
+        found = sorted([
+            os.path.join(self._scan_path, f)
+            for f in os.listdir(self._scan_path)
+            if f.endswith(".png")
+        ])
+        if found:
+            self._preview_frames = found
+
     def _next_preview_frame(self):
         if not self._preview_frames:
             # No frames yet — pulse the placeholder text
@@ -615,6 +638,22 @@ class MainWindow(QMainWindow):
             self.image_preview.show()
             self.placeholder_label.hide()
 
+    
+    # Add new method:
+    def _poll_heatmaps(self, filename):
+        video_name = os.path.splitext(filename)[0]
+        try:
+            resp = requests.get(f"http://127.0.0.1:8000/heatmaps/{video_name}", timeout=2)
+            if resp.status_code == 200:
+                paths = resp.json().get("heatmap_paths", [])
+                if len(paths) >= 5:  # all 5 heatmaps ready
+                    self._heatmap_poll_timer.stop()
+                    self._preview_frames = paths
+                    self._preview_idx = 0
+                    self._preview_timer.start(1500)
+        except Exception:
+            pass
+
     def _update_props(self, path):
         from PIL import Image as PILImage
         fname = os.path.basename(path)
@@ -625,6 +664,11 @@ class MainWindow(QMainWindow):
         self.prop_vals["FORMAT"].setText(ext)
         self.prop_vals["SIZE"].setText(f"{size_kb / 1024:.2f} MB")
         self.prop_vals["PATH"].setText(os.path.dirname(path))
+
+    def _update_frame_display(self):
+        self._frame_counter += 1
+        self.status_label.setText(f"PROCESSING FRAME {self._frame_counter}...")
+        self.awaiting_label.setText(f"ANALYSING FRAME {self._frame_counter}")
 
     def _reset_results(self):
         self.result_card.setObjectName("Card")
@@ -669,14 +713,24 @@ class MainWindow(QMainWindow):
         self.exec_btn.setEnabled(False)
         self.upload_btn.setEnabled(False)
         self.clear_btn.setEnabled(False)
-        self.pbar.setRange(0, 0)   # marquee
+        self.pbar.setRange(0, 0)
+        self._frame_counter = 0
+        self._frame_timer.start(150)     # marquee
         self.status_label.setText("RUNNING INFERENCE ON ONNX MODEL...")
         self._reset_results()
         self.awaiting_label.setText("PROCESSING...")
 
         self._preview_frames = []
         self._preview_idx = 0
-        self._preview_timer.start(120)   # ~8fps cycling
+        self._preview_timer.start(120)
+        video_name = os.path.splitext(os.path.basename(self.selected_image_path))[0]
+   # ~8fps cycling
+        # Point to where backend writes cleaned frames
+        self._scan_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),  # adjust if needed
+            "..", "backend", "outputs", video_name, "cleaned_frames"
+        )
+        self._scan_timer.start(500)
 
         self.worker = AnalysisWorker(self.selected_image_path)
         self.worker.finished.connect(self._on_success)
@@ -684,7 +738,18 @@ class MainWindow(QMainWindow):
         self.worker.start()
 
     def _on_success(self, result):
+        self._frame_timer.stop()
+
         self._preview_timer.stop()
+
+        self._scan_timer.stop()
+
+        self._heatmap_poll_timer = QTimer()
+        self._heatmap_poll_timer.timeout.connect(
+            lambda: self._poll_heatmaps(result.get("file", ""))
+        )
+        self._heatmap_poll_timer.start(2000)
+
 
         heatmap_paths = result.get("heatmap_paths", [])   # your backend must return these
         if heatmap_paths:
@@ -724,6 +789,10 @@ class MainWindow(QMainWindow):
         self.status_label.setText("ANALYSIS COMPLETE — PREDICTION READY")
 
     def _on_error(self, message):
+        self._frame_timer.stop()
+        self._scan_timer.stop()
+
+
         self._unlock_ui()
 
         self.result_card.setObjectName("ErrorCard")
