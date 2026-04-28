@@ -1,5 +1,6 @@
 import os
 import ffmpeg
+import shutil
 from model.predictor import predictor
 from scoring.frame_scoring import frame_scoring
 from scoring.video_scoring import video_scoring
@@ -20,6 +21,29 @@ GLOBAL_HEATMAP_GEN = HeatmapGenerator(
 
 
 def prediction(video_full_path):
+    # Check if ffmpeg is installed
+    ffmpeg_bin = shutil.which("ffmpeg")
+    if ffmpeg_bin is None:
+        # Fallback for common Windows installation paths
+        common_paths = [
+            r"C:\ProgramData\chocolatey\bin\ffmpeg.exe",
+            r"C:\ffmpeg\bin\ffmpeg.exe",
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), r"ffmpeg\bin\ffmpeg.exe"),
+            # Specific path found on user system
+            r"C:\Users\aadit\AppData\Local\ffmpeg-2026-04-26-git-4867d251ad-full_build\ffmpeg-2026-04-26-git-4867d251ad-full_build\bin\ffmpeg.exe"
+        ]
+        for path in common_paths:
+            if os.path.exists(path):
+                ffmpeg_bin = path
+                # Add to PATH so ffmpeg-python can find it
+                os.environ["PATH"] += os.pathsep + os.path.dirname(path)
+                print(f"DEBUG: Found ffmpeg at {path}, added to PATH.")
+                break
+
+    if ffmpeg_bin is None:
+        print("ERROR: ffmpeg binary not found in PATH.")
+        return "Error: ffmpeg not installed", 0
+
     filename = os.path.basename(video_full_path)
     video_name = os.path.splitext(filename)[0]
     video_dir = os.path.dirname(video_full_path)
@@ -43,7 +67,7 @@ def prediction(video_full_path):
 
     # Step 1: Extraction
     extractor = frame_extractor()
-    frames = extractor.extract_frames(new_input_file, "every_n_frames", 5, 10, 10000)
+    frames = extractor.extract_frames(new_input_file, "all", 5, 10, 10000)
 
     # # Step 2: Selection (blur/duplicate removal)
     # selector = frame_selector()

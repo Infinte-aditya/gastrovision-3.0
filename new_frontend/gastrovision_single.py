@@ -675,6 +675,7 @@ class MainWindow(QMainWindow):
         self.result_card.style().unpolish(self.result_card)
         self.result_card.style().polish(self.result_card)
 
+        self.awaiting_label.setText("AWAITING INPUT...")
         self.awaiting_label.show()
         self.result_title.hide()
         self.result_sub.hide()
@@ -687,9 +688,32 @@ class MainWindow(QMainWindow):
             chip.style().polish(chip)
 
     def clear_all(self):
+        # Stop all timers
+        self._preview_timer.stop()
+        self._frame_timer.stop()
+        self._scan_timer.stop()
+        if hasattr(self, '_heatmap_poll_timer'):
+            self._heatmap_poll_timer.stop()
+
+        # Handle worker
+        if self.worker and self.worker.isRunning():
+            try:
+                self.worker.finished.disconnect()
+                self.worker.error.disconnect()
+            except TypeError:
+                pass # signals were not connected or already disconnected
+            self.worker.terminate() # forceful stop since it's just a web request
+            self.worker.wait()
+
         self.selected_image_path = None
+        self._preview_frames = []
+        self._preview_idx = 0
+        self._scan_path = ""
+        
         self.image_preview.clear()
         self.image_preview.hide()
+        
+        self.placeholder_label.setText("[ DROP OR SELECT AN VIDEO ]")
         self.placeholder_label.show()
         self.image_box.setProperty("hasImage", False)
         self.image_box.style().unpolish(self.image_box)
@@ -699,10 +723,12 @@ class MainWindow(QMainWindow):
             self.prop_vals[k].setText("—")
 
         self.upload_btn.setText("⊞  SELECT VIDEO")
+        self.upload_btn.setEnabled(True)
         self.clear_btn.setEnabled(False)
         self.exec_btn.setEnabled(False)
-        self.status_label.setText("IDLE — SELECT AN VIDEO TO BEGIN")
+        self.status_label.setText("IDLE — SELECT A VIDEO TO BEGIN")
         self.pbar.setValue(0)
+        self.pbar.setRange(0, 100)
         self._reset_results()
 
     def run_analysis(self):
@@ -712,7 +738,7 @@ class MainWindow(QMainWindow):
         # Lock UI
         self.exec_btn.setEnabled(False)
         self.upload_btn.setEnabled(False)
-        self.clear_btn.setEnabled(False)
+        self.clear_btn.setEnabled(True)  # Keep clear enabled for cancellation
         self.pbar.setRange(0, 0)
         self._frame_counter = 0
         self._frame_timer.start(150)     # marquee
